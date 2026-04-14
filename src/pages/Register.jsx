@@ -5,7 +5,7 @@ import Input from "../components/Input";
 import Button from "../components/Button";
 
 const Register = () => {
-  const { login } = useAuth();
+  const { register, loading } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
@@ -22,27 +22,28 @@ const Register = () => {
     if (!formData.name.trim()) newErrors.name = "Name is required";
     if (!formData.email.trim()) newErrors.email = "Email is required";
     if (!formData.password.trim()) newErrors.password = "Password is required";
+    if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters";
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    login({ name: formData.name, email: formData.email });
-    navigate("/");
+
+    const result = await register(formData.name, formData.email, formData.password);
+    if (result.success) navigate("/");
   };
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-sm p-8 w-full max-w-md">
-
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Create account</h1>
-          <p className="text-gray-500 mt-1">Join MyStore today</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create account</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Join MyStore today</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -73,18 +74,22 @@ const Register = () => {
             error={errors.password}
           />
 
-          <Button type="submit" size="lg" className="mt-2 w-full">
+          <Button
+            type="submit"
+            size="lg"
+            loading={loading}
+            className="mt-2 w-full"
+          >
             Create Account
           </Button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
           Already have an account?{" "}
           <Link to="/login" className="text-blue-600 hover:underline font-medium">
             Sign In
           </Link>
         </p>
-
       </div>
     </div>
   );

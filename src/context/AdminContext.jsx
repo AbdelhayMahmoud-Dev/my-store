@@ -1,46 +1,77 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useCallback } from "react";
 import toast from "react-hot-toast";
-import {
-  getAllProducts,
-  addProduct,
-  updateProduct,
-  deleteProduct,
-} from "../services/productService";
+import { loginUser, registerUser, logoutUser } from "../services/authService";
 
-export const AdminContext = createContext(null);
+export const AuthContext = createContext(null);
 
-export const AdminProvider = ({ children }) => {
-  const [products, setProducts] = useState([]);
+let accessToken = null;
 
-  useEffect(() => {
-    getAllProducts().then(setProducts);
+export const getAccessToken = () => accessToken;
+export const setAccessToken = (token) => { accessToken = token; };
+
+const getUserFromStorage = () => {
+  try {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(getUserFromStorage);
+  const [loading, setLoading] = useState(false);
+
+  const login = useCallback(async (email, password) => {
+    setLoading(true);
+    try {
+      const data = await loginUser(email, password);
+      setAccessToken(data.data.accessToken);
+      setUser(data.data.user);
+      localStorage.setItem("user", JSON.stringify(data.data.user));
+      toast.success(`Welcome back, ${data.data.user.name}! 👋`);
+      return { success: true };
+    } catch (error) {
+      toast.error(error.message);
+      return { success: false, message: error.message };
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleAdd = (product) => {
-    const newProduct = addProduct(product);
-    setProducts((prev) => [...prev, newProduct]);
-    toast.success("Product added successfully! ✅");
-  };
+  const register = useCallback(async (name, email, password) => {
+    setLoading(true);
+    try {
+      const data = await registerUser(name, email, password);
+      setAccessToken(data.data.accessToken);
+      setUser(data.data.user);
+      localStorage.setItem("user", JSON.stringify(data.data.user));
+      toast.success(`Welcome, ${data.data.user.name}! 🎉`);
+      return { success: true };
+    } catch (error) {
+      toast.error(error.message);
+      return { success: false, message: error.message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const handleUpdate = (id, data) => {
-    updateProduct(id, data);
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === Number(id)
-          ? { ...p, ...data, rating: { rate: Number(data.rating), count: p.rating.count } }
-          : p
-      )
-    );
-    toast.success("Product updated! ✅");
-  };
+  const logout = useCallback(async () => {
+    setLoading(true);
+    try {
+      await logoutUser();
+    } catch {
+      // حتى لو الـ API فشلت، بنعمل logout محلياً
+    } finally {
+      setAccessToken(null);
+      setUser(null);
+      localStorage.removeItem("user");
+      toast("Logged out successfully", { icon: "👋" });
+      setLoading(false);
+    }
+  }, []);
 
-  const handleDelete = (id) => {
-    deleteProduct(id);
-    setProducts((prev) => prev.filter((p) => p.id !== Number(id)));
-    toast.error("Product deleted");
-  };
+  const value = { user, loading, login, register, logout };
 
-  const value = { products, handleAdd, handleUpdate, handleDelete };
-
-  return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -5,7 +5,7 @@ import Input from "../components/Input";
 import Button from "../components/Button";
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, loading } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -24,24 +24,24 @@ const Login = () => {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    login({ name: formData.email.split("@")[0], email: formData.email });
-    navigate("/");
+
+    const result = await login(formData.email, formData.password);
+    if (result.success) navigate("/");
   };
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-sm p-8 w-full max-w-md">
-
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="text-gray-500 mt-1">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -64,18 +64,22 @@ const Login = () => {
             error={errors.password}
           />
 
-          <Button type="submit" size="lg" className="mt-2 w-full">
+          <Button
+            type="submit"
+            size="lg"
+            loading={loading}
+            className="mt-2 w-full"
+          >
             Sign In
           </Button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
           Don't have an account?{" "}
           <Link to="/register" className="text-blue-600 hover:underline font-medium">
             Register
           </Link>
         </p>
-
       </div>
     </div>
   );
